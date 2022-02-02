@@ -7,10 +7,10 @@ function log(...args) {
 
 // Constants
 const P = 4096;
-const VERBOSE = false;
+const VERBOSE = true;
 const NOLOG = false;
 
-const THRESHOLD = 60;
+const THRESHOLD = 1;
 const RESULTS = [];
 
 // global vars to refactor

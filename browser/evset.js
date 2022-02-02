@@ -96,6 +96,7 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 			for (let c in m) {
 				this.unlinkChunk(m[c]);
 				let t = median(miss(this.victim, this.ptr));
+				console.log(t);
 				if (t < threshold) {
 					this.relinkChunk();
 				} else {
@@ -115,8 +116,9 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 					break;
 				}
 			}
-			if (VERBOSE) if (!(i++ % 100)) print('\tremaining size: ', this.refs.length);
+			
 		}
+		if (VERBOSE) log('\tremaining size: ', this.refs.length);
 	}
 
 	this.linkElement = function linkElement(e) {

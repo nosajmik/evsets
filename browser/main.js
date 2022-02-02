@@ -23,7 +23,7 @@ async function start(config) {
 		switch (msg.type) {
 			case 'log':
 				log (...msg.str);
-				msg.str.map(e => %DebugPrint(e)); // used for verification
+				// msg.str.map(e => %DebugPrint(e)); // used for verification
 				break;
 			case 'eof':
 				clock.terminate();
