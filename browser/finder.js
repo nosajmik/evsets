@@ -10,7 +10,7 @@ const P = 4096;
 const VERBOSE = true;
 const NOLOG = false;
 
-const THRESHOLD = 1;
+const THRESHOLD = 0.001;
 const RESULTS = [];
 
 // global vars to refactor
@@ -36,7 +36,7 @@ self.onmessage = async function start(evt) {
 	await new Promise(r => setTimeout(r, 10)); // timeout to allow counter
 	do {
 		let r = 0;
-		while (!cb(instance, evset, CONFLICT) && ++r < RETRY && evset.victim) {
+		while (!cb(instance, evset, CONFLICT, view) && ++r < RETRY && evset.victim) {
 			if (VERBOSE) log('retry');
 			first = false;
 		}
@@ -59,7 +59,7 @@ self.onmessage = async function start(evt) {
 	postMessage({type:'eof'});
 }
 
-function cb(instance, evset, findall) {
+function cb(instance, evset, findall, view) {
 
     let {wasm_hit, wasm_miss} = instance.exports;
 
@@ -111,7 +111,13 @@ function cb(instance, evset, findall) {
 		miss : function miss(vic, ptr) {
 			let t, total = [];
 			for (let i=0; i<REP; i++) {
-				t = wasm_miss(vic, ptr);
+				let head = ptr;
+				while (head != 0) head = view.getUint32(head, true);
+				const t1 = performance.now();
+				view.getUint32(vic, true);
+				const t2 = performance.now();
+				t = t2 - t1;
+				// t = wasm_miss(vic, ptr);
 				total.push(Number(t));
 			}
 			return total;
