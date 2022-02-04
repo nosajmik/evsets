@@ -159,9 +159,18 @@ function cb(instance, evset, findall) {
 	if (VERBOSE) log ('Starting reduction...');
 	evset.groupReduction(wasmMeasureOpt.miss, THRESHOLD);
 
+	
 	if (evset.refs.length === evset.assoc) {
 		if (!NOLOG) log('Victim addr: ' + evset.victim);
 		if (!NOLOG) log('Eviction set: ' + evset.refs);
+		console.log("Timings with eviction set traversal")
+		for (let i=0; i<10; i++) {
+			console.log(median(wasmMeasureOpt.miss(evset.victim, evset.ptr)));
+		}
+		console.log("Timings without eviction set traversal")
+		for (let i=0; i<10; i++) {
+			console.log(median(wasmMeasureOpt.miss(evset.victim, 0)));
+		}
 		evset.del = evset.del.flat();
 		return true;
 	} else {

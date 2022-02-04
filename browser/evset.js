@@ -96,7 +96,7 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 			for (let c in m) {
 				this.unlinkChunk(m[c]);
 				let t = median(miss(this.victim, this.ptr));
-				console.log(t);
+				// console.log(t);
 				if (t < threshold) {
 					this.relinkChunk();
 				} else {
