@@ -10,7 +10,7 @@ const P = 4096;
 const VERBOSE = true;
 const NOLOG = false;
 
-const THRESHOLD = 0.001;
+const THRESHOLD = 0.0001;
 const RESULTS = [];
 
 // global vars to refactor
@@ -63,7 +63,7 @@ function cb(instance, evset, findall, view) {
 
     let {wasm_hit, wasm_miss} = instance.exports;
 
-    const REP = 6;
+    const REP = 60;
 	const T = 1000;
 
 	const CLOCK = 256; // hardcoded offset in wasm
@@ -111,6 +111,7 @@ function cb(instance, evset, findall, view) {
 		miss : function miss(vic, ptr) {
 			let t, total = [];
 			for (let i=0; i<REP; i++) {
+				view.getUint32(vic, true);
 				let head = ptr;
 				while (head != 0) head = view.getUint32(head, true);
 				const t1 = performance.now();
@@ -164,9 +165,8 @@ function cb(instance, evset, findall, view) {
 
 	if (VERBOSE) log ('Starting reduction...');
 	evset.groupReduction(wasmMeasureOpt.miss, THRESHOLD);
-
 	
-	if (evset.refs.length === evset.assoc) {
+	if (evset.refs.length <= evset.assoc) {
 		if (!NOLOG) log('Victim addr: ' + evset.victim);
 		if (!NOLOG) log('Eviction set: ' + evset.refs);
 		log("Timings with eviction set traversal");

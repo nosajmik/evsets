@@ -88,19 +88,21 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 	}
 
 	this.groupReduction = function groupReduction(miss, threshold) {
-		const MAX = 20;
+		log(this.assoc);
+		const MAX = 500;
 		let i = 0, r = 0;
 		while (this.refs.length > this.assoc) {
-			let m = this.refs.chunk(this.assoc+1);
+			let m = this.refs.chunk(16+1);
 			let found = false;
 			for (let c in m) {
 				this.unlinkChunk(m[c]);
 				let t = median(miss(this.victim, this.ptr));
+				// console.log(t);
 				if (t < threshold) {
 					this.relinkChunk();
 				} else {
 					found = true;
-					console.log(t, this.refs.length);
+					log(`remaining size: ${this.refs.length}`);
 					break;
 				}
 			}
@@ -110,14 +112,14 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 					this.relinkChunk();
 					if (this.del.length === 0) break;
 				} else {
-					while (this.del.length > 0) {
-						this.relinkChunk();
-					}
+					debugger;
+					// while (this.del.length > 0) {
+					// 	this.relinkChunk();
+					// }
 					break;
 				}
-			};
+			};	
 		}
-		if (VERBOSE) log('\tremaining size: ', this.refs.length);
 	}
 
 	this.linkElement = function linkElement(e) {
