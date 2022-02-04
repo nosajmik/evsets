@@ -162,6 +162,14 @@ function cb(instance, evset, findall) {
 	if (evset.refs.length === evset.assoc) {
 		if (!NOLOG) log('Victim addr: ' + evset.victim);
 		if (!NOLOG) log('Eviction set: ' + evset.refs);
+		log("Timings with eviction set traversal");
+		for (let i=0; i<10; i++) {
+			log(median(wasmMeasureOpt.miss(evset.victim, evset.ptr)));
+		}
+		log("Timings without eviction set traversal");
+		for (let i=0; i<10; i++) {
+			log(median(wasmMeasureOpt.miss(evset.victim, 0)));
+		}
 		evset.del = evset.del.flat();
 		return true;
 	} else {
