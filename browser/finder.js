@@ -63,7 +63,7 @@ function cb(instance, evset, findall, view) {
 
     let {wasm_hit, wasm_miss} = instance.exports;
 
-    const REP = 60;
+    const REP = 6;
 	const T = 1000;
 
 	const CLOCK = 256; // hardcoded offset in wasm
@@ -108,16 +108,28 @@ function cb(instance, evset, findall, view) {
 			}
 			return total;
 		},
+		/* 
+		 Replaced SharedArrayBuffer/wasm eviction test with performance.now() here
+		 */
 		miss : function miss(vic, ptr) {
 			let t, total = [];
 			for (let i=0; i<REP; i++) {
-				view.getUint32(vic, true);
-				let head = ptr;
+				let crap = 0;
+				crap = view.getUint32(vic, true); // initial victim access
+				let head = ptr + crap - crap;
+				// Prevent out of order execution! + crap - crap is there
+				// to introduce a data dependency between the initial victim access
+				// and the candidate set traversal. Luckily Safari's optimizer is
+				// not so smart into looking at program semantics and doesn't get rid
+				// of the + crap - crap.
 				while (head != 0) head = view.getUint32(head, true);
+				let junk = 0;
 				const t1 = performance.now();
-				view.getUint32(vic, true);
+				junk = view.getUint32(vic, true); // victim reaccess
 				const t2 = performance.now();
-				t = t2 - t1;
+				t = t2 - t1 + junk - junk;
+				// Creating data dependency for the reaccess so it won't get
+				// optimized out. 
 				// t = wasm_miss(vic, ptr);
 				total.push(Number(t));
 			}

@@ -88,7 +88,6 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 	}
 
 	this.groupReduction = function groupReduction(miss, threshold) {
-		log(this.assoc);
 		const MAX = 500;
 		let i = 0, r = 0;
 		while (this.refs.length > this.assoc) {
@@ -102,7 +101,6 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 					this.relinkChunk();
 				} else {
 					found = true;
-					log(`remaining size: ${this.refs.length}`);
 					break;
 				}
 			}
