@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<title>Portable evset</title>
+<script src="/main.js"></script>
+<script>
+function log(...s){
+	 console.log(s);
+}
+
+function getConf() {
+	return {
+		B :			8000,
+		ASSOC :		16,
+		OFFSET :	0,
+		STRIDE :	4096,
+		CONFLICT :	false,
+	};
+}
+</script>
+</head>
+<body>
+<p>start(getConf())</p>
+</body>
+</html>

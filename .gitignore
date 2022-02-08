@@ -1,3 +1,4 @@
 *.o
 libevsets.so
 evsets
+.DS_Store
