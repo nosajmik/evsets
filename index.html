@@ -4,14 +4,10 @@
 <title>Portable evset</title>
 <script src="/main.js"></script>
 <script>
-function log(...s){
-	 console.log(s);
-}
-
 function getConf() {
 	return {
-		B :			8000,
-		ASSOC :		16,
+		B :			8192,
+		ASSOC :		64,
 		OFFSET :	0,
 		STRIDE :	4096,
 		CONFLICT :	false,

@@ -9,11 +9,6 @@ async function start(config) {
 	return false;
 }
 
-// Send log to main thread
-function log(...args) {
-	self.postMessage({type: 'log', str: args});
-}
-
 function mean(arr) {
 	return arr.reduce((a,b) => a+b) / arr.length;
 }
@@ -159,10 +154,9 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 					this.relinkChunk();
 					if (this.del.length === 0) break;
 				} else {
-					debugger;
-					// while (this.del.length > 0) {
-					// 	this.relinkChunk();
-					// }
+					while (this.del.length > 0) {
+						this.relinkChunk();
+					}
 					break;
 				}
 			};	
@@ -193,7 +187,7 @@ async function run(memory, config) {
 	// Memory view
 	const view = new DataView(memory.buffer);
 
-	if (!NOLOG) log('Prepare new evset');
+	if (!NOLOG) console.log('Prepare new evset');
 	const evset = new EvSet(view, B, P*2, P, ASSOC, STRIDE, OFFSET);
 	first = true, next = CONFLICT;
 
@@ -203,7 +197,7 @@ async function run(memory, config) {
 	do {
 		let r = 0;
 		while (!cb(evset, view) && ++r < RETRY && evset.victim) {
-			if (VERBOSE) log('retry');
+			if (VERBOSE) console.log('retry');
 			first = false;
 		}
 		if (r < RETRY) {
@@ -212,7 +206,6 @@ async function run(memory, config) {
 			evset.del = [];
 			evset.relink(); // from new refs
 			next = CONFLICT;
-			if (VERBOSE) log('Find next (', evset.refs.length, ')');
 		}
 		else
 		{
@@ -220,8 +213,8 @@ async function run(memory, config) {
 		}
 	} while (CONFLICT && evset.vics.length > 0 && evset.refs.length > ASSOC);
 
-	log('Found ' + RESULTS.length + ' different eviction sets');
-	log('EOF');
+	console.log('Found ' + RESULTS.length + ' different eviction sets');
+	console.log('EOF');
 	postMessage({type:'eof'});
 }
 
@@ -254,19 +247,19 @@ function cb(evset, view) {
 		return total;
 	}
 
-	if (VERBOSE) log ('Starting reduction...');
+	if (VERBOSE) console.log('Starting reduction...');
 	evset.groupReduction(miss, THRESHOLD);
 	
 	if (evset.refs.length <= evset.assoc) {
-		if (!NOLOG) log('Victim addr: ' + evset.victim);
-		if (!NOLOG) log('Eviction set: ' + evset.refs);
-		log("Timings with eviction set traversal");
+		if (!NOLOG) console.log('Victim addr: ' + evset.victim);
+		if (!NOLOG) console.log('Eviction set: ' + evset.refs);
+		console.log("Timings with eviction set traversal");
 		for (let i=0; i<10; i++) {
-			log(median(miss(evset.victim, evset.ptr)));
+			console.log(median(miss(evset.victim, evset.ptr)));
 		}
-		log("Timings without eviction set traversal");
+		console.log("Timings without eviction set traversal");
 		for (let i=0; i<10; i++) {
-			log(median(miss(evset.victim, 0)));
+			console.log(median(miss(evset.victim, 0)));
 		}
 		evset.del = evset.del.flat();
 		return true;
@@ -274,7 +267,7 @@ function cb(evset, view) {
 		while (evset.del.length > 0) {
 			evset.relinkChunk();
 		}
-		if (VERBOSE) log('Failed: ' + evset.refs.length);
+		if (VERBOSE) console.log('Failed: ' + evset.refs.length);
 		return false;
 	}
 }
