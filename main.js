@@ -1,14 +1,3 @@
-async function start(config) {
-	const BM = 128*1024*1024; // Eviction buffer
-	const WP = 64*1024; // A WebAssembly page has a constant size of 64KB
-	const SZ = BM/WP; // 128 hardcoded value in wasm
-
-	// Shared memory
-	const memory = new WebAssembly.Memory({initial: SZ, maximum: SZ});
-	run(memory, config);
-	return false;
-}
-
 function mean(arr) {
 	return arr.reduce((a,b) => a+b) / arr.length;
 }
@@ -95,7 +84,6 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 	this.ptr = 0;
 	this.refs = this.init();
 	this.del = [];
-	this.vics = [];
 	/* end-of-properties */
 
 	/* public methods */
@@ -131,15 +119,15 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 		}
 	}
 
-	this.groupReduction = function groupReduction(miss, threshold) {
+	this.groupReduction = function groupReduction(callback, threshold) {
 		const MAX = 500;
-		let i = 0, r = 0;
+		let r = 0;
 		while (this.refs.length > this.assoc) {
-			let m = this.refs.chunk(16+1);
+			let m = this.refs.chunk(16+1); // may need to change this to this.assoc + 1 for M1
 			let found = false;
 			for (let c in m) {
 				this.unlinkChunk(m[c]);
-				let t = median(miss(this.victim, this.ptr));
+				let t = median(callback(this.victim, this.ptr));
 				// console.log(t);
 				if (t < threshold) {
 					this.relinkChunk();
@@ -169,53 +157,38 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 }
 
 // Constants
-const P = 4096;
-const VERBOSE = true;
-const NOLOG = false;
-
+const PAGE_SZ = 4096;
 const THRESHOLD = 0.0001;
-const RESULTS = [];
 
-// global vars to refactor
-var first, next, n;
+async function run() {
+	const BM = 128*1024*1024; // Eviction buffer
+	const WP = 64*1024; // A WebAssembly page has a constant size of 64KB
+	const SZ = BM/WP; // 128 hardcoded value in wasm
 
-async function run(memory, config) {
+	// Shared memory
+	const memory = new WebAssembly.Memory({initial: SZ, maximum: SZ})
 
-	// Parse settings
-	let {B, CONFLICT, OFFSET, ASSOC, STRIDE} = config;
+	const B = PAGE_SZ * 2;
+	const OFFSET = 0;
+	const ASSOC = 64;
+	const STRIDE = PAGE_SZ;
 
 	// Memory view
 	const view = new DataView(memory.buffer);
 
-	if (!NOLOG) console.log('Prepare new evset');
-	const evset = new EvSet(view, B, P*2, P, ASSOC, STRIDE, OFFSET);
-	first = true, next = CONFLICT;
+	console.log('Prepare new evset');
+	const evset = new EvSet(view, B, PAGE_SZ*2, PAGE_SZ, ASSOC, STRIDE, OFFSET);
 
-	n = 0;
 	const RETRY = 10;
 	await new Promise(r => setTimeout(r, 10)); // timeout to allow counter
-	do {
-		let r = 0;
-		while (!cb(evset, view) && ++r < RETRY && evset.victim) {
-			if (VERBOSE) console.log('retry');
-			first = false;
-		}
-		if (r < RETRY) {
-			RESULTS.push(evset.refs); // save eviction set
-			evset.refs = evset.del.slice();
-			evset.del = [];
-			evset.relink(); // from new refs
-			next = CONFLICT;
-		}
-		else
-		{
-			next = CONFLICT;
-		}
-	} while (CONFLICT && evset.vics.length > 0 && evset.refs.length > ASSOC);
 
-	console.log('Found ' + RESULTS.length + ' different eviction sets');
+	let r = 0;
+	while (!cb(evset, view) && ++r < RETRY && evset.victim) {
+		console.log('retry');
+		first = false;
+	}
+
 	console.log('EOF');
-	postMessage({type:'eof'});
 }
 
 function cb(evset, view) {
@@ -247,12 +220,12 @@ function cb(evset, view) {
 		return total;
 	}
 
-	if (VERBOSE) console.log('Starting reduction...');
+	console.log('Starting reduction...');
 	evset.groupReduction(miss, THRESHOLD);
 	
 	if (evset.refs.length <= evset.assoc) {
-		if (!NOLOG) console.log('Victim addr: ' + evset.victim);
-		if (!NOLOG) console.log('Eviction set: ' + evset.refs);
+		console.log('Victim addr: ' + evset.victim);
+		console.log('Eviction set: ' + evset.refs);
 		console.log("Timings with eviction set traversal");
 		for (let i=0; i<10; i++) {
 			console.log(median(miss(evset.victim, evset.ptr)));
@@ -267,7 +240,7 @@ function cb(evset, view) {
 		while (evset.del.length > 0) {
 			evset.relinkChunk();
 		}
-		if (VERBOSE) console.log('Failed: ' + evset.refs.length);
+		console.log('Failed: ' + evset.refs.length);
 		return false;
 	}
 }
