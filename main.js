@@ -160,79 +160,70 @@ function EvSet(view, nblocks, start=8192, victim=4096, assoc=16, stride=4096, of
 const PAGE_SZ = 4096;
 const THRESHOLD = 0.0001;
 
+const MEM_LIMIT_BYTES = 128*1024*1024; // Eviction buffer
+const WASM_PAGE_SZ = 64*1024; // A WebAssembly page has a constant size of 64KB
+const SZ = MEM_LIMIT_BYTES/WASM_PAGE_SZ; // 128 hardcoded value in wasm
+
+const memory = new WebAssembly.Memory({initial: SZ, maximum: SZ});
+const view = new DataView(memory.buffer);
+
+const CANDIDATE_SZ = PAGE_SZ * 2;
+const OFFSET = 0;
+const ASSOC = 64;
+const STRIDE = PAGE_SZ;
+
+console.log('Prepare new evset');
+const evset = new EvSet(view, CANDIDATE_SZ, PAGE_SZ*2, PAGE_SZ, ASSOC, STRIDE, OFFSET);
+
 async function run() {
-	const BM = 128*1024*1024; // Eviction buffer
-	const WP = 64*1024; // A WebAssembly page has a constant size of 64KB
-	const SZ = BM/WP; // 128 hardcoded value in wasm
-
-	// Shared memory
-	const memory = new WebAssembly.Memory({initial: SZ, maximum: SZ})
-
-	const B = PAGE_SZ * 2;
-	const OFFSET = 0;
-	const ASSOC = 64;
-	const STRIDE = PAGE_SZ;
-
-	// Memory view
-	const view = new DataView(memory.buffer);
-
-	console.log('Prepare new evset');
-	const evset = new EvSet(view, B, PAGE_SZ*2, PAGE_SZ, ASSOC, STRIDE, OFFSET);
-
-	const RETRY = 10;
 	await new Promise(r => setTimeout(r, 10)); // timeout to allow counter
-
+	const RETRY = 10;
 	let r = 0;
-	while (!cb(evset, view) && ++r < RETRY && evset.victim) {
+	while (!reductionWrapper() && ++r < RETRY && evset.victim) {
 		console.log('retry');
-		first = false;
 	}
-
 	console.log('EOF');
 }
 
-function cb(evset, view) {
-
-    const REP = 6;
-	
-	function miss(vic, ptr) {
-		let t, total = [];
-		for (let i=0; i<REP; i++) {
-			let crap = 0;
-			crap = view.getUint32(vic, true); // initial victim access
-			let head = ptr + crap - crap;
-			// Prevent out of order execution! + crap - crap is there
-			// to introduce a data dependency between the initial victim access
-			// and the candidate set traversal. Luckily Safari's optimizer is
-			// not so smart into looking at program semantics and doesn't get rid
-			// of the + crap - crap.
-			while (head != 0) head = view.getUint32(head, true);
-			let junk = 0;
-			const t1 = performance.now();
-			junk = view.getUint32(vic, true); // victim reaccess
-			const t2 = performance.now();
-			t = t2 - t1 + junk - junk;
-			// Creating data dependency for the reaccess so it won't get
-			// optimized out. 
-			// t = wasm_miss(vic, ptr);
-			total.push(Number(t));
-		}
-		return total;
+function testEvict(vic, ptr) {
+	const REPS = 6;
+	let t, total = [];
+	for (let i = 0; i < REPS; i++) {
+		let crap = 0;
+		crap = view.getUint32(vic, true); // initial victim access
+		let head = ptr + crap - crap;
+		// Prevent out of order execution! + crap - crap is there
+		// to introduce a data dependency between the initial victim access
+		// and the candidate set traversal. Luckily Safari's optimizer is
+		// not so smart into looking at program semantics and doesn't get rid
+		// of the + crap - crap.
+		while (head != 0) head = view.getUint32(head, true);
+		let junk = 0;
+		const t1 = performance.now();
+		junk = view.getUint32(vic, true); // victim reaccess
+		const t2 = performance.now();
+		t = t2 - t1 + junk - junk;
+		// Creating data dependency for the reaccess so it won't get
+		// optimized out. 
+		// t = wasm_miss(vic, ptr);
+		total.push(Number(t));
 	}
+	return total;
+}
 
+function reductionWrapper() {
 	console.log('Starting reduction...');
-	evset.groupReduction(miss, THRESHOLD);
-	
+	evset.groupReduction(testEvict, THRESHOLD);
 	if (evset.refs.length <= evset.assoc) {
 		console.log('Victim addr: ' + evset.victim);
 		console.log('Eviction set: ' + evset.refs);
 		console.log("Timings with eviction set traversal");
 		for (let i=0; i<10; i++) {
-			console.log(median(miss(evset.victim, evset.ptr)));
+			console.log(median(testEvict(evset.victim, evset.ptr)));
 		}
 		console.log("Timings without eviction set traversal");
 		for (let i=0; i<10; i++) {
-			console.log(median(miss(evset.victim, 0)));
+			console.log(median(testEvict(evset.victim, 0)));
 		}
 		evset.del = evset.del.flat();
 		return true;
