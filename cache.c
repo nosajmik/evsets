@@ -239,6 +239,33 @@ test_set(Elem *ptr, char *victim, void (*trav)(Elem*))
 }
 
 int
+test_flush(char *victim)
+{
+	maccess (victim);
+	maccess (victim);
+	maccess (victim);
+	maccess (victim);
+
+	flush(victim);
+
+	maccess (victim + 222); // page walk
+
+	size_t delta, time;
+#ifndef THREAD_COUNTER
+//	time = rdtsc();
+	time = rdtscfence();
+	maccess (victim);
+//	delta = rdtscp() - time;
+	delta = rdtscfence() - time;
+#else
+	time = clock_thread();
+	maccess (victim);
+	delta = clock_thread() - time;
+#endif
+	return delta;
+}
+
+int
 test_and_time(Elem *ptr, int rep, int threshold, int ways, void (*trav)(Elem*))
 {
 	int i = 0, count = 0;
@@ -277,6 +304,7 @@ tests_avg(Elem *ptr, char *victim, int rep, int threshold, void (*trav)(Elem*))
 		if (delta < 800) vic->delta += delta;
 	}
 	ret	= (float)vic->delta / rep;
+	// printf("%d\n", ret);
 	return ret > threshold;
 }
 
