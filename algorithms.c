@@ -271,6 +271,7 @@ gt_eviction(Elem **ptr, Elem **can, char *victim)
 
 		break;
 		mycont:
+			// printf("Backtracking\n");
 			if (conf.flags & FLAG_VERBOSE)
 			{
 				printf("\tbacktracking step\n");

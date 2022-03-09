@@ -220,6 +220,41 @@ test_set(Elem *ptr, char *victim, void (*trav)(Elem*))
 	maccess (victim);
 
 	trav (ptr);
+	// nosajmik: traverse two more times to get around
+	// adaptive LLC replacement policy. Doing this increases
+	// the chance of convergence, and when testing the final
+	// candidate set for eviction, I only see the weird 110 cycles 
+	// very rarely. Most of the time it's close to 300 cycles
+	// that clflush achieves.
+	trav (ptr);
+	trav (ptr);
+
+	maccess (victim + 222); // page walk
+
+	size_t delta, time;
+#ifndef THREAD_COUNTER
+//	time = rdtsc();
+	time = rdtscfence();
+	maccess (victim);
+//	delta = rdtscp() - time;
+	delta = rdtscfence() - time;
+#else
+	time = clock_thread();
+	maccess (victim);
+	delta = clock_thread() - time;
+#endif
+	return delta;
+}
+
+int
+test_flush(char *victim)
+{
+	maccess (victim);
+	maccess (victim);
+	maccess (victim);
+	maccess (victim);
+
+	flush(victim);
 
 	maccess (victim + 222); // page walk
 
@@ -277,6 +312,10 @@ tests_avg(Elem *ptr, char *victim, int rep, int threshold, void (*trav)(Elem*))
 		if (delta < 800) vic->delta += delta;
 	}
 	ret	= (float)vic->delta / rep;
+	// printf("%d\n", ret);
+	// if (ret > threshold) {
+	// 	printf("===========\n");
+	// }
 	return ret > threshold;
 }
 

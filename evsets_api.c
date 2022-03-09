@@ -345,6 +345,39 @@ find_evsets()
 			printf("[+] (ID=%d) Found minimal eviction set for %p (length=%d): ",
 				id, (void*)victim, len);
 			print_list (ptr);
+
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("%d\n", test_set(ptr, victim, conf.traverse));
+			printf("========================\n");
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("%d\n", test_set(NULL, victim, conf.traverse));
+			printf("========================\n");
+			printf("%d\n", test_flush(victim));
+			printf("%d\n", test_flush(victim));
+			printf("%d\n", test_flush(victim));
+			printf("%d\n", test_flush(victim));
+			printf("%d\n", test_flush(victim));
+			printf("%d\n", test_flush(victim));
+			printf("%d\n", test_flush(victim));
+			printf("%d\n", test_flush(victim));
+			printf("%d\n", test_flush(victim));
+			printf("%d\n", test_flush(victim));
 		}
 		else
 		{

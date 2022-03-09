@@ -34,6 +34,7 @@ int test_set(Elem *ptr, char *victim, void (*trav)(Elem*));
 int tests(Elem *ptr, char *victim, int rep, int threshold, float ratio, void (*trav)(Elem*));
 int tests_avg(Elem *ptr, char *victim, int rep, int threshold, void (*trav)(Elem*));
 int test_and_time(Elem *ptr, int rep, int threshold, int ways, void (*trav)(Elem*));
+int test_flush(char *victim);
 
 int calibrate(char *victim, struct config *conf);
 
